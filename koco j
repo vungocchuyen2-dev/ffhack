@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DEVIL PIN - Control</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: #111;
+            border: 2px solid #00ff00;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 0 40px rgba(0, 255, 0, 0.1);
+        }
+        .header { text-align: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; color: #00ff00; }
+        .header .sub { color: #666; font-size: 12px; margin-top: 5px; }
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-align: center;
+            margin: 5px 0;
+            width: 100%;
+        }
+        .btn:hover { background: #222; border-color: #00ff00; }
+        .btn.active { background: #00ff00; color: #000; border-color: #00ff00; }
+        .btn.danger { border-color: #ff0000; color: #ff0000; }
+        .btn.danger:hover { background: #ff0000; color: #000; }
+        .status {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 3px solid #00ff00;
+        }
+        .status .label { color: #888; font-size: 12px; }
+        .status .value { font-size: 14px; font-weight: bold; }
+        .status .value.online { color: #00ff00; }
+        .status .value.offline { color: #ff0000; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .slider-group {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .slider-group label { display: flex; justify-content: space-between; font-size: 12px; color: #888; }
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00ff00;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .log {
+            margin-top: 20px;
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: #666;
+        }
+        .log .entry { padding: 2px 0; border-bottom: 1px solid #111; }
+        .log .entry .msg { color: #00ff00; }
+        .device-info { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: #666; }
+        .device-info span { color: #00ff00; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>💀 DEVIL PIN</h1>
+        <div class="sub">Channel: @tpmodz | Owner: @tpmodz</div>
+    </div>
+
+    <div class="status">
+        <div><div class="label">STATUS</div><div class="value online" id="statusText">🟢 ONLINE</div></div>
+        <div><div class="label">ENEMIES</div><div class="value" id="enemyCount">0</div></div>
+        <div><div class="label">PING</div><div class="value" id="pingText">0ms</div></div>
+    </div>
+
+    <div class="device-info">
+        📱 Device: <span id="deviceName">Chưa kết nối</span> | In Game: <span id="inGameStatus">❌</span>
+    </div>
+
+    <div class="row">
+        <button class="btn active" id="btnAimbot" onclick="toggleAimbot()">🎯 AIMBOT</button>
+        <button class="btn active" id="btnEsp" onclick="toggleESP()">👁️ ESP</button>
+    </div>
+    <button class="btn" id="btnFire" onclick="toggleFire()">🔥 AUTO FIRE</button>
+
+    <div class="slider-group">
+        <label><span>FOV</span><span id="fovValue">15°</span></label>
+        <input type="range" id="fovSlider" min="5" max="45" value="15" oninput="updateFOV(this.value)">
+    </div>
+
+    <button class="btn danger" onclick="resetAll()">🔄 RESET</button>
+
+    <div class="log" id="logContainer">
+        <div class="entry"><span class="msg">💀 DEVIL PIN READY</span></div>
+    </div>
+</div>
+
+<script>
+    // ===== CONFIG =====
+    let CONFIG = { aimbot: true, esp: true, fov: 15, smooth: 0.3, autoFire: false };
+    let enemyCount = 0;
+
+    // ===== COMMANDS =====
+    function sendCommand(action, value) {
+        const data = { action, value, timestamp: Date.now() };
+        localStorage.setItem('devil_cmd', JSON.stringify(data));
+        addLog📤 ${action}: ${value}`);
+        // Gửi qua BroadcastChannel
+        try {
+            const channel = new BroadcastChannel('devil_pin');
+            channel.postMessage(data);
+        } catch(e) {}
+        // Gửi qua WebSocket nếu có
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+            window.ws.send(JSON.stringify(data));
+        }
+    }
+
+    function toggleAimbot() {
+        const btn = document.getElementById('btnAimbot');
+        CONFIG.aimbot = !CONFIG.aimbot;
+        btn.classList.toggle('active');
+        sendCommand('toggle_aimbot', CONFIG.aimbot);
+    }
+
+    function toggleESP() {
+        const btn = document.getElementById('btnEsp');
+        CONFIG.esp = !CONFIG.esp;
+        btn.classList.toggle('active');
+        sendCommand('toggle_esp', CONFIG.esp);
+    }
+
+    function toggleFire() {
+        const btn = document.getElementById('btnFire');
+        CONFIG.autoFire = !CONFIG.autoFire;
+        btn.classList.toggle('active');
+        btn.textContent = CONFIG.autoFire ? '🔥 AUTO FIRE ON' : '🔥 AUTO FIRE';
+        sendCommand('toggle_fire', CONFIG.autoFire);
+    }
+
+    function updateFOV(val) {
+        CONFIG.fov = parseInt(val);
+        document.getElementById('fovValue').textContent = val + '°';
+        sendCommand('set_fov', CONFIG.fov);
+    }
+
+    function resetAll() {
+        CONFIG = { aimbot: true, esp: true, fov: 15, smooth: 0.3, autoFire: false };
+        document.getElementById('btnAimbot').classList.add('active');
+        document.getElementById('btnEsp').classList.add('active');
+        document.getElementById('btnFire').classList.remove('active');
+        document.getElementById('btnFire').textContent = '🔥 AUTO FIRE';
+        document.getElementById('fovSlider').value = 15;
+        document.getElementById('fovValue').textContent = '15°';
+        sendCommand('reset', true);
+        addLog('🔄 Reset all');
+    }
+
+    // ===== RECEIVE COMMANDS (từ tab khác) =====
+    try {
+        const channel = new BroadcastChannel('devil_pin');
+        channel.onmessage = function(e) {
+            const d = e.data;
+            if (d.action === 'toggle_aimbot') {
+                document.getElementById('btnAimbot').classList.toggle('active', d.value);
+                CONFIG.aimbot = d.value;
+            }
+            if (d.action === 'toggle_esp') {
+                document.getElementById('btnEsp').classList.toggle('active', d.value);
+                CONFIG.esp = d.value;
+            }
+            if (d.action === 'set_fov') {
+                document.getElementById('fovSlider').value = d.value;
+                document.getElementById('fovValue').textContent = d.value + '°';
+                CONFIG.fov = d.value;
+            }
+            if (d.action === 'toggle_fire') {
+                document.getElementById('btnFire').classList.toggle('active', d.value);
+                CONFIG.autoFire = d.value;
+                document.getElementById('btnFire').textContent = d.value ? '🔥 AUTO FIRE ON' : '🔥 AUTO FIRE';
+            }
+            addLog📥 ${d.action}: ${d.value}`);
+        };
+    } catch(e) {}
+
+    // ===== MÔ PHỎNG DATA =====
+    setInterval(() => {
+        enemyCount = Math.floor(Math.random() * 15);
+        document.getElementById('enemyCount').textContent = enemyCount;
+        document.getElementById('pingText').textContent = Math.floor(Math.random() * 50 + 10) + 'ms';
+        document.getElementById('deviceName').textContent = 'devil_' + Math.random().toString(36).substr(2, 4);
+        document.getElementById('inGameStatus').textContent = Math.random() > 0.3 ? '✅' : '❌';
+    }, 5000);
+
+    function addLog(msg) {
+        const c = document.getElementById('logContainer');
+        const e = document.createElement('div');
+        e.className = 'entry';
+        e.innerHTML = <span class="msg">${new Date().toLocaleTimeString()} - ${msg}</span>;
+        c.appendChild(e);
+        c.scrollTop = c.scrollHeight;
+        if (c.children.length > 30) c.removeChild(c.children[0]);
+    }
+
+    addLog('🌐 Web ready! Copy URL to Proxy Pin');
+</script>
+</body>
+</html>
