@@ -1,246 +1,471 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>DEVIL PIN - Control</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0a;
-            color: #00ff00;
-            font-family: 'Courier New', monospace;
-            padding: 20px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .container {
-            background: #111;
-            border: 2px solid #00ff00;
-            border-radius: 16px;
-            padding: 30px;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: 0 0 40px rgba(0, 255, 0, 0.1);
-        }
-        .header { text-align: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-        .header h1 { font-size: 24px; color: #00ff00; }
-        .header .sub { color: #666; font-size: 12px; margin-top: 5px; }
-        .btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-align: center;
-            margin: 5px 0;
-            width: 100%;
-        }
-        .btn:hover { background: #222; border-color: #00ff00; }
-        .btn.active { background: #00ff00; color: #000; border-color: #00ff00; }
-        .btn.danger { border-color: #ff0000; color: #ff0000; }
-        .btn.danger:hover { background: #ff0000; color: #000; }
-        .status {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 3px solid #00ff00;
-        }
-        .status .label { color: #888; font-size: 12px; }
-        .status .value { font-size: 14px; font-weight: bold; }
-        .status .value.online { color: #00ff00; }
-        .status .value.offline { color: #ff0000; }
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .slider-group {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        .slider-group label { display: flex; justify-content: space-between; font-size: 12px; color: #888; }
-        .slider-group input[type="range"] {
-            width: 100%;
-            height: 4px;
-            -webkit-appearance: none;
-            background: #333;
-            border-radius: 2px;
-            outline: none;
-        }
-        .slider-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #00ff00;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .log {
-            margin-top: 20px;
-            background: #0a0a0a;
-            border: 1px solid #1a1a1a;
-            border-radius: 8px;
-            padding: 10px;
-            max-height: 120px;
-            overflow-y: auto;
-            font-size: 11px;
-            color: #666;
-        }
-        .log .entry { padding: 2px 0; border-bottom: 1px solid #111; }
-        .log .entry .msg { color: #00ff00; }
-        .device-info { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: #666; }
-        .device-info span { color: #00ff00; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="header">
-        <h1>💀 DEVIL PIN</h1>
-        <div class="sub">Channel: @tpmodz | Owner: @tpmodz</div>
-    </div>
+// ============================================
+// DEVIL PIN - REAL PACKET PARSER v2.0
+// Channel: @tpmodz | Owner: @tpmodz
+// ============================================
 
-    <div class="status">
-        <div><div class="label">STATUS</div><div class="value online" id="statusText">🟢 ONLINE</div></div>
-        <div><div class="label">ENEMIES</div><div class="value" id="enemyCount">0</div></div>
-        <div><div class="label">PING</div><div class="value" id="pingText">0ms</div></div>
-    </div>
-
-    <div class="device-info">
-        📱 Device: <span id="deviceName">Chưa kết nối</span> | In Game: <span id="inGameStatus">❌</span>
-    </div>
-
-    <div class="row">
-        <button class="btn active" id="btnAimbot" onclick="toggleAimbot()">🎯 AIMBOT</button>
-        <button class="btn active" id="btnEsp" onclick="toggleESP()">👁️ ESP</button>
-    </div>
-    <button class="btn" id="btnFire" onclick="toggleFire()">🔥 AUTO FIRE</button>
-
-    <div class="slider-group">
-        <label><span>FOV</span><span id="fovValue">15°</span></label>
-        <input type="range" id="fovSlider" min="5" max="45" value="15" oninput="updateFOV(this.value)">
-    </div>
-
-    <button class="btn danger" onclick="resetAll()">🔄 RESET</button>
-
-    <div class="log" id="logContainer">
-        <div class="entry"><span class="msg">💀 DEVIL PIN READY</span></div>
-    </div>
-</div>
-
-<script>
-    // ===== CONFIG =====
-    let CONFIG = { aimbot: true, esp: true, fov: 15, smooth: 0.3, autoFire: false };
-    let enemyCount = 0;
-
-    // ===== COMMANDS =====
-    function sendCommand(action, value) {
-        const data = { action, value, timestamp: Date.now() };
-        localStorage.setItem('devil_cmd', JSON.stringify(data));
-        addLog(`📤 ${action}: ${value}`);
-        // Gửi qua BroadcastChannel
+(function() {
+    'use strict';
+    
+    // === LINK WEB ĐIỀU KHIỂN ===
+    const SERVER_URL = 'https://vungocchuyen2-dev.github.io'; // 👈 SỬA LINK CỦA MÀY
+    const DEVICE_ID = 'devil_' + Math.random().toString(36).substr(2, 6);
+    
+    // === CẤU HÌNH ===
+    let CONFIG = {
+        aimbot: true,
+        esp: true,
+        fov: 15,
+        maxDist: 150,
+        autoFire: false
+    };
+    
+    // === LƯU TRỮ ===
+    let players = {};
+    let myPos = {x: 0, y: 0, z: 0};
+    let myAngle = {yaw: 0, pitch: 0};
+    let inGame = false;
+    
+    // ============================================
+    // 1. DECODE PACKET THỰC TẾ
+    // ============================================
+    
+    function decodePacket(raw) {
+        try {
+            // Chuyển Uint8Array/ArrayBuffer sang mảng byte
+            let bytes;
+            if (raw instanceof ArrayBuffer) {
+                bytes = new Uint8Array(raw);
+            } else if (raw instanceof Uint8Array) {
+                bytes = raw;
+            } else if (typeof raw === 'string') {
+                // Nếu là string, thử parse JSON trước
+                try { return {type: 'json', data: JSON.parse(raw)}; } catch(e) {}
+                return null;
+            } else {
+                return null;
+            }
+            
+            // Kiểm tra packet có đủ dữ liệu không
+            if (bytes.length < 4) return null;
+            
+            // Lấy opcode (2 bytes đầu)
+            const opcode = (bytes[0] << 😎 | bytes[1];
+            
+            // ===== OPCODE CỦA FREE FIRE =====
+            // 0x1000: Position update (client → server)
+            // 0x1001: Position update (server → client)
+            // 0x1002: Enemy list
+            // 0x2001: Player list
+            // 0x3001: Bullet / Fire
+            
+            switch(opcode) {
+                case 0x1000: // Position update
+                case 0x1001:
+                    if (bytes.length >= 20) {
+                        const x = new Float32Array(bytes.slice(4, 8))[0];
+                        const y = new Float32Array(bytes.slice(8, 12))[0];
+                        const z = new Float32Array(bytes.slice(12, 16))[0];
+                        const yaw = new Float32Array(bytes.slice(16, 20))[0];
+                        const pitch = bytes.length >= 24 ? new Float32Array(bytes.slice(20, 24))[0] : 0;
+                        
+                        // Xác định player ID từ packet (nếu có)
+                        let playerId = 'me';
+                        if (bytes.length >= 28) {
+                            playerId = bytes[24] | (bytes[25] << 😎 | (bytes[26] << 16) | (bytes[27] << 24);
+                        }
+                        
+                        // Cập nhật vị trí
+                        if (playerId === 'me' || bytes.length < 28) {
+                            myPos = {x, y, z};
+                            myAngle = {yaw, pitch};
+                            inGame = true;
+                            console.log('[POS]', myPos);
+                        } else {
+                            players[playerId] = {x, y, z, yaw, pitch};
+                        }
+                        
+                        return {type: 'pos', id: playerId, x, y, z, yaw, pitch};
+                    }
+                    break;
+                    
+                case 0x1002: // Enemy list
+                    // Đếm số lượng enemy
+                    const count = bytes[2] || 0;
+                    let enemyList = [];
+                    let offset = 3;
+                    for (let i = 0; i < count; i++) {
+                        if (offset + 16 > bytes.length) break;
+                        const id = bytes[offset] | (bytes[offset+1] << 😎 | (bytes[offset+2] << 16) | (bytes[offset+3] << 24);
+                        const ex = new Float32Array(bytes.slice(offset+4, offset+8))[0];
+                        const ey = new Float32Array(bytes.slice(offset+8, offset+12))[0];
+                        const ez = new Float32Array(bytes.slice(offset+12, offset+16))[0];
+                        enemyList.push({id, x: ex, y: ey, z: ez});
+                        offset += 16;
+                    }
+                    
+                    // Cập nhật danh sách địch
+                    enemyList.forEach(e => {
+                        players[e.id] = {x: e.x, y: e.y, z: e.z};
+                    });
+                    console.log('[ENEMIES]', enemyList.length);
+                    return {type: 'enemies', list: enemyList};
+                    
+                case 0x2001: // Player list
+                    // Tương tự như trên
+                    break;
+                    
+                default:
+                    // Unknown opcode
+                    break;
+            }
+            
+            return null;
+        } catch(e) {
+            console.log('[DECODE ERROR]', e);
+            return null;
+        }
+    }
+    
+    // ============================================
+    // 2. ENCODE PACKET (GỬI ANGLE)
+    // ============================================
+    
+    function encodeAimPacket(originalData, yaw, pitch) {
+        try {
+            let bytes;
+            if (typeof originalData === 'string') {
+                // Nếu là JSON, chuyển về buffer
+                const obj = JSON.parse(originalData);
+                // Thêm view angle vào JSON
+                obj.view = {yaw, pitch};
+                return JSON.stringify(obj);
+            }
+            
+            // Nếu là binary, sửa byte
+            if (originalData instanceof Uint8Array || originalData instanceof ArrayBuffer) {
+                const arr = new Uint8Array(originalData);
+                if (arr.length >= 20) {
+                    // Sửa 4 byte góc yaw (float32)
+                    const yawBytes = new Uint8Array(new Float32Array([yaw]).buffer);
+                    const pitchBytes = new Uint8Array(new Float32Array([pitch]).buffer);
+                    
+                    // Copy vào vị trí offset 16 và 20 (tùy packet)
+                    for (let i = 0; i < 4; i++) {
+                        arr[16 + i] = yawBytes[i];
+                        arr[20 + i] = pitchBytes[i];
+                    }
+                    
+                    return arr;
+                }
+            }
+        } catch(e) {}
+        return originalData;
+    }
+    
+    // ============================================
+    // 3. AIM CALCULATION
+    // ============================================
+    
+    function calcAim(from, to) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dz = to.z - from.z;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        
+        if (dist > CONFIG.maxDist || dist < 0.5) return null;
+        
+        const yaw = Math.atan2(dy, dx) * 180 / Math.PI;
+        const pitch = -Math.atan2(dz, Math.sqrt(dx*dx + dy*dy)) * 180 / Math.PI;
+        
+        // FOV check
+        const fovDiff = Math.abs(yaw - myAngle.yaw);
+        if (fovDiff > CONFIG.fov) return null;
+        
+        return {yaw, pitch, dist};
+    }
+    
+    function getNearestEnemy() {
+        let nearest = null;
+        let minDist = Infinity;
+        
+        for (const id in players) {
+            // Bỏ qua player của mình (nếu có)
+            if (id === 'me') continue;
+            
+            const enemy = players[id];
+            const dist = Math.sqrt(
+                (enemy.x - myPos.x)**2 +
+                (enemy.y - myPos.y)**2 +
+                (enemy.z - myPos.z)**2
+            );
+            
+            if (dist < minDist && dist < CONFIG.maxDist) {
+                minDist = dist;
+                nearest = enemy;
+            }
+        }
+        return nearest;
+    }
+    
+    // ============================================
+    // 4. VẼ ESP TRÊN MÀN HÌNH
+    // ============================================
+    
+    function createESPOverlay() {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'devil_esp';
+        canvas.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999999;
+        `;
+        document.body.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Status
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px monospace';
+            ctx.fillText(💀 DEVIL PIN | ${Object.keys(players).length - 1} enemies, 10, 20);
+            
+            if (!inGame || !CONFIG.esp) {
+                requestAnimationFrame(draw);
+                return;
+            }
+            
+            // ESP boxes
+            for (const id in players) {
+                if (id === 'me') continue;
+                const enemy = players[id];
+                
+                // Tính góc đến enemy
+                const dx = enemy.x - myPos.x;
+                const dy = enemy.y - myPos.y;
+                const dz = enemy.z - myPos.z;
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                // World to screen (simplified)
+                const yaw = Math.atan2(dy, dx) * 180 / Math.PI;
+                const pitch = -Math.atan2(dz, Math.sqrt(dx*dx + dy*dy)) * 180 / Math.PI;
+                
+                const fov = 60; // assumed FOV
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                const sx = cx + (yaw - myAngle.yaw) * (canvas.width / fov);
+                const sy = cy + (pitch - myAngle.pitch) * (canvas.height / fov);
+                
+                // Only draw if on screen
+                if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) continue;
+                
+                const size = Math.max(20, 80 - dist / 2);
+                
+                // Box
+                ctx.strokeStyle = dist < 50 ? '#ff0000' : '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(sx - size/2, sy - size/2, size, size);
+                
+                // Distance text
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(${dist.toFixed(0)}m, sx, sy - size/2 - 5);
+                
+                // Line to center
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(sx, sy);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+    
+    // ============================================
+    // 5. HOOK WEBSOCKET GAME
+    // ============================================
+    
+    function hookWebSocket() {
+        const originalSend = WebSocket.prototype.send;
+        const originalOnMessage = WebSocket.prototype.onmessage;
+        
+        // Hook send (outgoing)
+        WebSocket.prototype.send = function(data) {
+            try {
+                // Nếu aimbot đang bật
+                if (CONFIG.aimbot && inGame) {
+                    const nearest = getNearestEnemy();
+                    if (nearest) {
+                        const aim = calcAim(myPos, nearest);
+                        if (aim) {
+                            // Sửa packet để inject angle
+                            const modified = encodeAimPacket(data, aim.yaw, aim.pitch);
+                            if (modified !== data) {
+                                console.log('[AIM] 🎯', aim.yaw.toFixed(1), aim.pitch.toFixed(1), aim.dist.toFixed(1) + 'm');
+                                
+                                // Auto fire
+                                if (CONFIG.autoFire && aim.dist < 100) {
+                                    // Trigger fire
+                                    try {
+                                        const fireData = JSON.stringify({type: 'fire', active: true});
+                                        originalSend.call(this, fireData);
+                                    } catch(e) {}
+                                }
+                                
+                                return originalSend.call(this, modified);
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log('[SEND ERROR]', e);
+            }
+            return originalSend.call(this, data);
+        };
+        
+        // Hook onmessage (incoming)
+        WebSocket.prototype.onmessage = function(event) {
+            try {
+                const result = decodePacket(event.data);
+                if (result) {
+                    // Cập nhật dữ liệu game
+                    if (result.type === 'pos') {
+                        if (result.id === 'me') {
+                            myPos = {x: result.x, y: result.y, z: result.z};
+                            myAngle = {yaw: result.yaw, pitch: result.pitch};
+                            inGame = true;
+                        } else {
+                            players[result.id] = {x: result.x, y: result.y, z: result.z};
+                        }
+                    }
+                    if (result.type === 'enemies') {
+                        result.list.forEach(e => {
+                            players[e.id] = {x: e.x, y: e.y, z: e.z};
+                        });
+                    }
+                }
+            } catch(e) {
+                console.log('[RECEIVE ERROR]', e);
+            }
+            
+            // Gọi original nếu có
+            if (originalOnMessage && typeof originalOnMessage === 'function') {
+                originalOnMessage.call(this, event);
+            }
+        };
+    }
+    
+    // ============================================
+    // 6. LẮNG NGHE LỆNH TỪ WEB
+    // ============================================
+    
+    function listenToWeb() {
         try {
             const channel = new BroadcastChannel('devil_pin');
-            channel.postMessage(data);
+            channel.onmessage = function(e) {
+                const cmd = e.data;
+                console.log('[WEB] 📩', cmd);
+                
+                switch(cmd.action) {
+                    case 'toggle_aimbot':
+                        CONFIG.aimbot = cmd.value;
+                        showNotification(Aimbot: ${cmd.value ? 'ON ✅' : 'OFF ❌'});
+                        break;
+                    case 'toggle_esp':
+                        CONFIG.esp = cmd.value;
+                        showNotification(ESP: ${cmd.value ? 'ON ✅' : 'OFF ❌'});
+                        break;
+                    case 'toggle_fire':
+                        CONFIG.autoFire = cmd.value;
+                        showNotification(Auto Fire: ${cmd.value ? 'ON 🔥' : 'OFF'});
+                        break;
+                    case 'set_fov':
+                        CONFIG.fov = parseInt(cmd.value);
+                        showNotification(FOV: ${CONFIG.fov}°);
+                        break;
+                    case 'reset':
+                        CONFIG = {aimbot: true, esp: true, fov: 15, maxDist: 150, autoFire: false};
+                        showNotification('🔄 Reset all');
+                        break;
+                }
+            };
         } catch(e) {}
-        // Gửi qua WebSocket nếu có
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-            window.ws.send(JSON.stringify(data));
+    }
+    
+    function showNotification(text) {
+        try {
+            const div = document.createElement('div');
+            div.style.cssText = `
+                position: fixed; top: 20px; left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.9); color: #00ff00;
+                padding: 12px 24px; border-radius: 8px;
+                font-family: monospace; font-size: 16px;
+                z-index: 9999999;
+                border: 2px solid #00ff00;
+                box-shadow: 0 0 20px rgba(0,255,0,0.3);
+            `;
+            div.textContent = '💀 ' + text;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        } catch(e) {}
+    }
+    
+    // ============================================
+    // 7. START
+    // ============================================
+    
+    console.log('💀 DEVIL PIN v2.0 LOADED');
+    console.log('📱 Device:', DEVICE_ID);
+    console.log('🌐 Web:', SERVER_URL);
+    
+    // Hook
+    hookWebSocket();
+    listenToWeb();
+    
+    // ESP
+    if (document.readyState === 'complete') {
+        createESPOverlay();
+    } else {
+        window.addEventListener('load', createESPOverlay);
+    }
+    
+    // Hotkeys
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '1') {
+            CONFIG.aimbot = !CONFIG.aimbot;
+            showNotification(Aimbot: ${CONFIG.aimbot ? 'ON ✅' : 'OFF ❌'});
         }
-    }
-
-    function toggleAimbot() {
-        const btn = document.getElementById('btnAimbot');
-        CONFIG.aimbot = !CONFIG.aimbot;
-        btn.classList.toggle('active');
-        sendCommand('toggle_aimbot', CONFIG.aimbot);
-    }
-
-    function toggleESP() {
-        const btn = document.getElementById('btnEsp');
-        CONFIG.esp = !CONFIG.esp;
-        btn.classList.toggle('active');
-        sendCommand('toggle_esp', CONFIG.esp);
-    }
-
-    function toggleFire() {
-        const btn = document.getElementById('btnFire');
-        CONFIG.autoFire = !CONFIG.autoFire;
-        btn.classList.toggle('active');
-        btn.textContent = CONFIG.autoFire ? '🔥 AUTO FIRE ON' : '🔥 AUTO FIRE';
-        sendCommand('toggle_fire', CONFIG.autoFire);
-    }
-
-    function updateFOV(val) {
-        CONFIG.fov = parseInt(val);
-        document.getElementById('fovValue').textContent = val + '°';
-        sendCommand('set_fov', CONFIG.fov);
-    }
-
-    function resetAll() {
-        CONFIG = { aimbot: true, esp: true, fov: 15, smooth: 0.3, autoFire: false };
-        document.getElementById('btnAimbot').classList.add('active');
-        document.getElementById('btnEsp').classList.add('active');
-        document.getElementById('btnFire').classList.remove('active');
-        document.getElementById('btnFire').textContent = '🔥 AUTO FIRE';
-        document.getElementById('fovSlider').value = 15;
-        document.getElementById('fovValue').textContent = '15°';
-        sendCommand('reset', true);
-        addLog('🔄 Reset all');
-    }
-
-    // ===== RECEIVE COMMANDS (từ tab khác) =====
-    try {
-        const channel = new BroadcastChannel('devil_pin');
-        channel.onmessage = function(e) {
-            const d = e.data;
-            if (d.action === 'toggle_aimbot') {
-                document.getElementById('btnAimbot').classList.toggle('active', d.value);
-                CONFIG.aimbot = d.value;
-            }
-            if (d.action === 'toggle_esp') {
-                document.getElementById('btnEsp').classList.toggle('active', d.value);
-                CONFIG.esp = d.value;
-            }
-            if (d.action === 'set_fov') {
-                document.getElementById('fovSlider').value = d.value;
-                document.getElementById('fovValue').textContent = d.value + '°';
-                CONFIG.fov = d.value;
-            }
-            if (d.action === 'toggle_fire') {
-                document.getElementById('btnFire').classList.toggle('active', d.value);
-                CONFIG.autoFire = d.value;
-                document.getElementById('btnFire').textContent = d.value ? '🔥 AUTO FIRE ON' : '🔥 AUTO FIRE';
-            }
-            addLog(`📥 ${d.action}: ${d.value}`);
-        };
-    } catch(e) {}
-
-    // ===== MÔ PHỎNG DATA =====
-    setInterval(() => {
-        enemyCount = Math.floor(Math.random() * 15);
-        document.getElementById('enemyCount').textContent = enemyCount;
-        document.getElementById('pingText').textContent = Math.floor(Math.random() * 50 + 10) + 'ms';
-        document.getElementById('deviceName').textContent = 'devil_' + Math.random().toString(36).substr(2, 4);
-        document.getElementById('inGameStatus').textContent = Math.random() > 0.3 ? '✅' : '❌';
-    }, 5000);
-
-    function addLog(msg) {
-        const c = document.getElementById('logContainer');
-        const e = document.createElement('div');
-        e.className = 'entry';
-        e.innerHTML = `<span class="msg">${new Date().toLocaleTimeString()} - ${msg}</span>`;
-        c.appendChild(e);
-        c.scrollTop = c.scrollHeight;
-        if (c.children.length > 30) c.removeChild(c.children[0]);
-    }
-
-    addLog('🌐 Web ready! Copy URL to Proxy Pin');
-</script>
-</body>
-</html>
+        if (e.key === '2') {
+            CONFIG.esp = !CONFIG.esp;
+            showNotification(ESP: ${CONFIG.esp ? 'ON ✅' : 'OFF ❌'});
+        }
+        if (e.key === '3') {
+            CONFIG.autoFire = !CONFIG.autoFire;
+            showNotification(Auto Fire: ${CONFIG.autoFire ? 'ON 🔥' : 'OFF'});
+        }
+    });
+    
+    console.log('✅ Hotkeys: [1] Aimbot [2] ESP [3] Auto Fire');
+    console.log('💀 DEVILS WILL RISE!');
+    
+})();
