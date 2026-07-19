@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DEVIL PIN v4 - Control</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: #111;
+            border: 2px solid #00ff00;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 0 40px rgba(0, 255, 0, 0.1);
+        }
+        .header { text-align: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; color: #00ff00; }
+        .header .sub { color: #666; font-size: 12px; margin-top: 5px; }
+        .header .status-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+        }
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff00;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            transition: all 0.3s;
+            text-align: center;
+            margin: 4px 0;
+            width: 100%;
+        }
+        .btn:hover { background: #222; border-color: #00ff00; }
+        .btn.active { background: #00ff00; color: #000; border-color: #00ff00; }
+        .btn.danger { border-color: #ff0000; color: #ff0000; }
+        .btn.danger:hover { background: #ff0000; color: #000; }
+        .btn.aim-head { border-color: #ff6600; color: #ff6600; }
+        .btn.aim-head.active { background: #ff6600; color: #000; }
+        .status {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 3px solid #00ff00;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+        }
+        .status .label { color: #888; font-size: 10px; text-transform: uppercase; }
+        .status .value { font-size: 14px; font-weight: bold; }
+        .status .value.online { color: #00ff00; }
+        .status .value.offline { color: #ff0000; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .slider-group {
+            background: #1a1a1a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .slider-group label { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #00ff00;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .log {
+            margin-top: 15px;
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            padding: 8px 10px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 10px;
+            color: #666;
+        }
+        .log .entry { padding: 2px 0; border-bottom: 1px solid #111; }
+        .log .entry .msg { color: #00ff00; }
+        .log .entry .highlight { color: #ff6600; }
+        .device-info {
+            background: #1a1a1a;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+        .device-info span { color: #00ff00; }
+        .bone-toggle {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .bone-toggle .btn { font-size: 11px; padding: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>💀 DEVIL PIN v4</h1>
+        <div class="sub">Channel: @tpmodz | Owner: @tpmodz</div>
+        <div class="status-badge" id="connectionBadge">🟢 CONNECTED</div>
+    </div>
+
+    <div class="status">
+        <div><div class="label">STATUS</div><div class="value online" id="statusText">ONLINE</div></div>
+        <div><div class="label">ENEMIES</div><div class="value" id="enemyCount">0</div></div>
+        <div><div class="label">PING</div><div class="value" id="pingText">0ms</div></div>
+    </div>
+
+    <div class="device-info">
+        <span>📱 Device: <span id="deviceName">Chưa kết nối</span></span>
+        <span>🎯 Headshot: <span id="headshotStatus">OFF</span></span>
+    </div>
+
+    <div class="row">
+        <button class="btn active" id="btnAimbot" onclick="toggleAimbot()">🎯 AIMBOT</button>
+        <button class="btn active" id="btnEsp" onclick="toggleESP()">👁️ ESP</button>
+    </div>
+    <div class="row">
+        <button class="btn aim-head" id="btnHeadshot" onclick="toggleHeadshot()">🎯 HEADSHOT</button>
+        <button class="btn" id="btnFire" onclick="toggleFire()">🔥 AUTO FIRE</button>
+    </div>
+    <div class="row-3">
+        <button class="btn" onclick="toggleBone('head')" style="font-size:11px;padding:8px;">🦴 HEAD</button>
+        <button class="btn" onclick="toggleBone('chest')" style="font-size:11px;padding:8px;">🦴 CHEST</button>
+        <button class="btn" onclick="toggleBone('legs')" style="font-size:11px;padding:8px;">🦴 LEGS</button>
+    </div>
+
+    <div class="slider-group">
+        <label><span>🎯 FOV (Field of View)</span><span id="fovValue">15°</span></label>
+        <input type="range" id="fovSlider" min="5" max="60" value="15" oninput="updateFOV(this.value)">
+    </div>
+    <div class="slider-group">
+        <label><span>📏 Max Distance</span><span id="distValue">150m</span></label>
+        <input type="range" id="distSlider" min="50" max="300" value="150" oninput="updateDist(this.value)">
+    </div>
+
+    <button class="btn danger" onclick="resetAll()">🔄 RESET</button>
+
+    <div class="log" id="logContainer">
+        <div class="entry"><span class="msg">💀 DEVIL PIN v4 READY</span></div>
+        <div class="entry"><span class="msg">🌐 Waiting for device...</span></div>
+    </div>
+</div>
+
+<script>
+    // ===== WEBSOCKET SERVER (kết nối với ProxyPin) =====
+    let ws = null;
+    let wsConnected = false;
+    let deviceId = null;
+    
+    // ===== CONFIG =====
+    let CONFIG = {
+        aimbot: true,
+        esp: true,
+        headshot: false,
+        autoFire: false,
+        fov: 15,
+        maxDist: 150,
+        boneTarget: 'head' // head, chest, legs
+    };
+    
+    // ===== KẾT NỐI WEBSOCKET =====
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + '/ws';
+        
+        try {
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                wsConnected = true;
+                document.getElementById('connectionBadge').textContent = '🟢 CONNECTED';
+                document.getElementById('connectionBadge').style.borderColor = '#00ff00';
+                addLog('✅ WebSocket connected');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                } catch(e) {}
+            };
+            
+            ws.onclose = function() {
+                wsConnected = false;
+                document.getElementById('connectionBadge').textContent = '🔴 DISCONNECTED';
+                document.getElementById('connectionBadge').style.borderColor = '#ff0000';
+                addLog('⚠️ Disconnected, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function() {
+                // Silent fail, will retry
+            };
+        } catch(e) {
+            addLog('⚠️ WebSocket not available, using fallback');
+            // Fallback: dùng BroadcastChannel + localStorage
+            setupFallback();
+        }
+    }
+    
+    // ===== FALLBACK (nếu WebSocket ko có) =====
+    function setupFallback() {
+        try {
+            const channel = new BroadcastChannel('devil_pin');
+            channel.onmessage = function(e) {
+                handleServerMessage(e.data);
+            };
+        } catch(e) {}
+        
+        // Lắng nghe từ localStorage
+        setInterval(() => {
+            try {
+                const raw = localStorage.getItem('devil_from_game');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    localStorage.removeItem('devil_from_game');
+                    handleServerMessage(data);
+                }
+            } catch(e) {}
+        }, 100);
+    }
+    
+    // ===== XỬ LÝ TIN NHẮN TỪ GAME =====
+    function handleServerMessage(data) {
+        switch(data.type) {
+            case 'heartbeat':
+                deviceId = data.id;
+                document.getElementById('deviceName').textContent = data.id;
+                document.getElementById('enemyCount').textContent = data.enemies || 0;
+                document.getElementById('pingText').textContent = (Date.now() - data.timestamp) + 'ms';
+                document.getElementById('statusText').textContent = data.inGame ? 'IN GAME ✅' : 'ONLINE';
+                document.getElementById('statusText').className = 'value ' + (data.inGame ? 'online' : 'online');
+                break;
+                
+            case 'config_update':
+                if (data.config) {
+                    updateUI(data.config);
+                }
+                break;
+                
+            case 'aim_result':
+                if (data.hit) {
+                    addLog('🎯 Headshot! Distance: ' + data.dist + 'm');
+                }
+                break;
+                
+            case 'enemy_detected':
+                addLog('👁️ Enemy detected: ' + data.count + ' players');
+                break;
+        }
+    }
+    
+    // ===== GỬI LỆNH ĐI =====
+    function sendCommand(action, value) {
+        const data = { action, value, timestamp: Date.now() };
+        
+        // Gửi qua WebSocket
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(data));
+            addLog('📤 ' + action + ': ' + value);
+            return;
+        }
+        
+        // Fallback: localStorage
+        try {
+            localStorage.setItem('devil_command', JSON.stringify(data));
+            addLog('📤 ' + action + ': ' + value + ' (via localStorage)');
+        } catch(e) {}
+        
+        // BroadcastChannel
+        try {
+            const channel = new BroadcastChannel('devil_pin');
+            channel.postMessage(data);
+        } catch(e) {}
+    }
+    
+    // ===== UI CONTROLS =====
+    function toggleAimbot() {
+        const btn = document.getElementById('btnAimbot');
+        CONFIG.aimbot = !CONFIG.aimbot;
+        btn.classList.toggle('active');
+        sendCommand('toggle_aimbot', CONFIG.aimbot);
+    }
+    
+    function toggleESP() {
+        const btn = document.getElementById('btnEsp');
+        CONFIG.esp = !CONFIG.esp;
+        btn.classList.toggle('active');
+        sendCommand('toggle_esp', CONFIG.esp);
+    }
+    
+    function toggleHeadshot() {
+        const btn = document.getElementById('btnHeadshot');
+        CONFIG.headshot = !CONFIG.headshot;
+        btn.classList.toggle('active');
+        document.getElementById('headshotStatus').textContent = CONFIG.headshot ? 'ON ✅' : 'OFF';
+        sendCommand('toggle_headshot', CONFIG.headshot);
+    }
+    
+    function toggleFire() {
+        const btn = document.getElementById('btnFire');
+        CONFIG.autoFire = !CONFIG.autoFire;
+        btn.classList.toggle('active');
+        btn.textContent = CONFIG.autoFire ? '🔥 AUTO FIRE ON' : '🔥 AUTO FIRE';
+        sendCommand('toggle_fire', CONFIG.autoFire);
+    }
+    
+    function toggleBone(target) {
+        CONFIG.boneTarget = target;
+        document.querySelectorAll('.row-3 .btn').forEach(b => b.style.borderColor = '#333');
+        event.target.style.borderColor = '#ff6600';
+        sendCommand('set_bone', target);
+        addLog('🦴 Bone target: ' + target.toUpperCase());
+    }
+    
+    function updateFOV(val) {
+        CONFIG.fov = parseInt(val);
+        document.getElementById('fovValue').textContent = val + '°';
+        sendCommand('set_fov', CONFIG.fov);
+    }
+    
+    function updateDist(val) {
+        CONFIG.maxDist = parseInt(val);
+        document.getElementById('distValue').textContent = val + 'm';
+        sendCommand('set_dist', CONFIG.maxDist);
+    }
+    
+    function resetAll() {
+        CONFIG = { aimbot: true, esp: true, headshot: false, autoFire: false, fov: 15, maxDist: 150, boneTarget: 'head' };
+        document.getElementById('btnAimbot').classList.add('active');
+        document.getElementById('btnEsp').classList.add('active');
+        document.getElementById('btnHeadshot').classList.remove('active');
+        document.getElementById('btnFire').classList.remove('active');
+        document.getElementById('btnFire').textContent = '🔥 AUTO FIRE';
+        document.getElementById('fovSlider').value = 15;
+        document.getElementById('fovValue').textContent = '15°';
+        document.getElementById('distSlider').value = 150;
+        document.getElementById('distValue').textContent = '150m';
+        document.getElementById('headshotStatus').textContent = 'OFF';
+        sendCommand('reset', true);
+        addLog('🔄 Reset all');
+    }
+    
+    function updateUI(config) {
+        if (config.aimbot !== undefined) {
+            document.getElementById('btnAimbot').classList.toggle('active', config.aimbot);
+        }
+        if (config.esp !== undefined) {
+            document.getElementById('btnEsp').classList.toggle('active', config.esp);
+        }
+        if (config.headshot !== undefined) {
+            document.getElementById('btnHeadshot').classList.toggle('active', config.headshot);
+            document.getElementById('headshotStatus').textContent = config.headshot ? 'ON ✅' : 'OFF';
+        }
+        if (config.fov) {
+            document.getElementById('fovSlider').value = config.fov;
+            document.getElementById('fovValue').textContent = config.fov + '°';
+        }
+        if (config.maxDist) {
+            document.getElementById('distSlider').value = config.maxDist;
+            document.getElementById('distValue').textContent = config.maxDist + 'm';
+        }
+    }
+    
+    // ===== LOG =====
+    function addLog(msg) {
+        const c = document.getElementById('logContainer');
+        const e = document.createElement('div');
+        e.className = 'entry';
+        const time = new Date().toLocaleTimeString();
+        e.innerHTML = '<span class="time">[' + time + ']</span> <span class="msg">' + msg + '</span>';
+        c.appendChild(e);
+        c.scrollTop = c.scrollHeight;
+        if (c.children.length > 30) c.removeChild(c.children[0]);
+    }
+    
+    // ===== START =====
+    connectWebSocket();
+    addLog('🌐 Web v4 ready at ' + window.location.href);
+    addLog('💀 Channel: @tpmodz');
+    
+    // Gửi heartbeat mỗi 10s để giữ kết nối
+    setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({type: 'ping', timestamp: Date.now()}));
+        }
+    }, 10000);
+</script>
+</body>
+</html>
